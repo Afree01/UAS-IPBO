@@ -11,7 +11,6 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.List;
@@ -28,41 +27,27 @@ public class MainForm extends JFrame {
     private JTable table;
     private DefaultTableModel tableModel;
 
-    private JTextField tfIdFrom = new JTextField();
-    private JTextField tfIdTo = new JTextField();
+    private JTextField tfIdFrom = new JTextField(5);
+    private JTextField tfIdTo = new JTextField(5);
 
     private JPanel mainPanel;
 
     public MainForm() {
         setTitle("Student Master - UAS PBO");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(900, 600);
+        setSize(950, 600);
         setLocationRelativeTo(null);
 
+        // 🌈 Panel utama dengan gradasi
         mainPanel = new JPanel(new BorderLayout()) {
-            private BufferedImage bg;
-            {
-                try {
-                    bg = ImageIO.read(getClass().getResource("/report/logo.png")); // small logo as background example
-                } catch (Exception e) {
-                    bg = null;
-                }
-            }
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                if (bg != null) {
-                    // tile the background image
-                    for (int x = 0; x < getWidth(); x += bg.getWidth()) {
-                        for (int y = 0; y < getHeight(); y += bg.getHeight()) {
-                            g.drawImage(bg, x, y, this);
-                        }
-                    }
-                } else {
-                    // fallback background color
-                    g.setColor(new Color(230, 240, 255));
-                    g.fillRect(0, 0, getWidth(), getHeight());
-                }
+                Graphics2D g2d = (Graphics2D) g;
+                GradientPaint gp = new GradientPaint(0, 0, new Color(200, 220, 255),
+                        0, getHeight(), new Color(180, 200, 240));
+                g2d.setPaint(gp);
+                g2d.fillRect(0, 0, getWidth(), getHeight());
             }
         };
         setContentPane(mainPanel);
@@ -72,65 +57,96 @@ public class MainForm extends JFrame {
     }
 
     private void initComponents() {
+        // 🧭 Header panel (logo + judul)
+        JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        headerPanel.setOpaque(false);
+        try {
+            JLabel logo = new JLabel(new ImageIcon(getClass().getResource("/report/logo.png")));
+            headerPanel.add(logo);
+        } catch (Exception ignored) {}
+        JLabel title = new JLabel("STUDENT MASTER SYSTEM");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        title.setForeground(new Color(40, 40, 100));
+        headerPanel.add(title);
+        mainPanel.add(headerPanel, BorderLayout.NORTH);
+
+        // 📋 Form Panel
         JPanel formPanel = new JPanel(new GridBagLayout());
         formPanel.setOpaque(false);
         GridBagConstraints c = new GridBagConstraints();
-        c.insets = new Insets(6,6,6,6);
+        c.insets = new Insets(6, 6, 6, 6);
         c.fill = GridBagConstraints.HORIZONTAL;
 
-        c.gridx = 0; c.gridy = 0; formPanel.add(new JLabel("ID:"), c);
+        JLabel lblId = new JLabel("ID:");
+        JLabel lblNama = new JLabel("Nama:");
+        JLabel lblJurusan = new JLabel("Jurusan:");
+        JLabel lblAngkatan = new JLabel("Angkatan:");
+        lblId.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        lblNama.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        lblJurusan.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        lblAngkatan.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+
+        c.gridx = 0; c.gridy = 0; formPanel.add(lblId, c);
         c.gridx = 1; c.gridy = 0; formPanel.add(tfId, c);
-
-        c.gridx = 0; c.gridy = 1; formPanel.add(new JLabel("Nama:"), c);
+        c.gridx = 0; c.gridy = 1; formPanel.add(lblNama, c);
         c.gridx = 1; c.gridy = 1; formPanel.add(tfNama, c);
-
-        c.gridx = 0; c.gridy = 2; formPanel.add(new JLabel("Jurusan:"), c);
+        c.gridx = 0; c.gridy = 2; formPanel.add(lblJurusan, c);
         c.gridx = 1; c.gridy = 2; formPanel.add(tfJurusan, c);
-
-        c.gridx = 0; c.gridy = 3; formPanel.add(new JLabel("Angkatan:"), c);
+        c.gridx = 0; c.gridy = 3; formPanel.add(lblAngkatan, c);
         c.gridx = 1; c.gridy = 3; formPanel.add(tfAngkatan, c);
 
-        JButton btnTambah = new JButton("Tambah");
-        JButton btnUbah = new JButton("Ubah");
-        JButton btnHapus = new JButton("Hapus");
-        JButton btnClear = new JButton("Clear");
-        JButton btnCapture = new JButton("Capture (screenshot)");
+        // 🎨 Tombol dengan gaya baru
+        JButton btnTambah = createStyledButton("Tambah", new Color(0, 153, 255));
+        JButton btnUbah = createStyledButton("Ubah", new Color(255, 180, 0));
+        JButton btnHapus = createStyledButton("Hapus", new Color(255, 80, 80));
+        JButton btnClear = createStyledButton("Clear", new Color(120, 120, 120));
+        JButton btnCapture = createStyledButton("Capture (Screenshot)", new Color(0, 180, 90));
 
         JPanel btnPanel = new JPanel();
         btnPanel.setOpaque(false);
-        btnPanel.add(btnTambah); btnPanel.add(btnUbah); btnPanel.add(btnHapus); btnPanel.add(btnClear); btnPanel.add(btnCapture);
+        btnPanel.add(btnTambah);
+        btnPanel.add(btnUbah);
+        btnPanel.add(btnHapus);
+        btnPanel.add(btnClear);
+        btnPanel.add(btnCapture);
 
         c.gridx = 0; c.gridy = 4; c.gridwidth = 2; formPanel.add(btnPanel, c);
 
-        // table
-        tableModel = new DefaultTableModel(new Object[]{"ID","Nama","Jurusan","Angkatan"}, 0) {
-            @Override public boolean isCellEditable(int row, int column){ return false; }
+        // 📊 Tabel
+        tableModel = new DefaultTableModel(new Object[]{"ID", "Nama", "Jurusan", "Angkatan"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) { return false; }
         };
         table = new JTable(tableModel);
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        table.setRowHeight(25);
         JScrollPane sp = new JScrollPane(table);
 
-        // report panel
+        // 🧾 Report panel
         JPanel reportPanel = new JPanel();
         reportPanel.setOpaque(false);
-        reportPanel.add(new JLabel("ID From:")); reportPanel.add(tfIdFrom);
-        reportPanel.add(new JLabel("ID To:")); reportPanel.add(tfIdTo);
-        JButton btnPrint = new JButton("Generate PDF Report (Jasper)");
+        reportPanel.add(new JLabel("ID From:"));
+        reportPanel.add(tfIdFrom);
+        reportPanel.add(new JLabel("ID To:"));
+        reportPanel.add(tfIdTo);
+        JButton btnPrint = createStyledButton("Generate PDF Report (Jasper)", new Color(0, 120, 200));
         reportPanel.add(btnPrint);
 
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, formPanel, sp);
-        split.setDividerLocation(320);
+        split.setDividerLocation(350);
+        split.setOpaque(false);
 
         add(split, BorderLayout.CENTER);
         add(reportPanel, BorderLayout.SOUTH);
 
-        // action listeners
+        // 🧩 Listener tombol
         btnTambah.addActionListener(e -> tambahAction());
         btnUbah.addActionListener(e -> ubahAction());
         btnHapus.addActionListener(e -> hapusAction());
         btnClear.addActionListener(e -> clearForm());
         btnCapture.addActionListener(e -> {
             captureComponent(this, "captures/action_capture.png");
-            JOptionPane.showMessageDialog(this, "Screenshot saved to captures/action_capture.png");
+            JOptionPane.showMessageDialog(this, "Screenshot tersimpan di captures/action_capture.png");
         });
 
         table.addMouseListener(new MouseAdapter() {
@@ -138,14 +154,14 @@ public class MainForm extends JFrame {
             public void mouseClicked(MouseEvent e) {
                 int r = table.getSelectedRow();
                 if (r >= 0) {
-                    tfId.setText(tableModel.getValueAt(r,0).toString());
-                    tfNama.setText(tableModel.getValueAt(r,1).toString());
-                    tfJurusan.setText(tableModel.getValueAt(r,2).toString());
-                    tfAngkatan.setText(tableModel.getValueAt(r,3).toString());
+                    tfId.setText(tableModel.getValueAt(r, 0).toString());
+                    tfNama.setText(tableModel.getValueAt(r, 1).toString());
+                    tfJurusan.setText(tableModel.getValueAt(r, 2).toString());
+                    tfAngkatan.setText(tableModel.getValueAt(r, 3).toString());
 
-                    // change background color randomly to ensure not the same UI for each mahasiswa
+                    // Ganti warna background tiap mahasiswa
                     Random rnd = new Random(Integer.parseInt(tfId.getText()));
-                    mainPanel.setBackground(new Color(150 + rnd.nextInt(100), 150 + rnd.nextInt(100), 150 + rnd.nextInt(100)));
+                    mainPanel.setBackground(new Color(180 + rnd.nextInt(50), 180 + rnd.nextInt(50), 255));
                 }
             }
         });
@@ -159,24 +175,44 @@ public class MainForm extends JFrame {
                     JOptionPane.showMessageDialog(this, "Tidak ada data pada rentang ID tersebut.");
                     return;
                 }
-                // generate report
+
                 InputStream logoStream = getClass().getResourceAsStream("/report/logo.png");
                 File outDir = new File("reports");
                 outDir.mkdirs();
                 String outputPath = "reports/mahasiswa_report_" + from + "_" + to + ".pdf";
                 ReportGenerator.generateReport(data, from, to, logoStream, outputPath);
 
-                // capture report button click
                 captureComponent(this, "captures/report_capture.png");
-
                 JOptionPane.showMessageDialog(this, "Report berhasil dibuat: " + outputPath);
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Masukkan ID From/To yang valid (integer).");
             } catch (Exception ex) {
                 ex.printStackTrace();
                 JOptionPane.showMessageDialog(this, "Gagal membuat report: " + ex.getMessage());
             }
         });
+    }
+
+    // 🌟 Utility buat tombol keren
+    private JButton createStyledButton(String text, Color baseColor) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btn.setForeground(Color.WHITE);
+        btn.setBackground(baseColor);
+        btn.setFocusPainted(false);
+        btn.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        // efek hover
+        btn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                btn.setBackground(baseColor.darker());
+            }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                btn.setBackground(baseColor);
+            }
+        });
+        return btn;
     }
 
     private void tambahAction() {
@@ -189,7 +225,6 @@ public class MainForm extends JFrame {
                 JOptionPane.showMessageDialog(this, "Data berhasil ditambahkan.");
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "Gagal tambah: " + ex.getMessage());
         }
     }
@@ -206,7 +241,6 @@ public class MainForm extends JFrame {
                 JOptionPane.showMessageDialog(this, "Data gagal diubah atau ID tidak ditemukan.");
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "Gagal ubah: " + ex.getMessage());
         }
     }
@@ -214,18 +248,15 @@ public class MainForm extends JFrame {
     private void hapusAction() {
         try {
             int id = Integer.parseInt(tfId.getText().trim());
-            int ok = JOptionPane.showConfirmDialog(this, "Hapus data ID " + id + "?", "Confirm", JOptionPane.YES_NO_OPTION);
+            int ok = JOptionPane.showConfirmDialog(this, "Hapus data ID " + id + "?", "Konfirmasi", JOptionPane.YES_NO_OPTION);
             if (ok == JOptionPane.YES_OPTION) {
                 if (controller.hapus(id)) {
                     loadTable();
                     captureComponent(this, "captures/delete.png");
                     JOptionPane.showMessageDialog(this, "Data berhasil dihapus.");
-                } else {
-                    JOptionPane.showMessageDialog(this, "Gagal menghapus. ID mungkin tidak ada.");
                 }
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "Gagal hapus: " + ex.getMessage());
         }
     }
@@ -238,13 +269,15 @@ public class MainForm extends JFrame {
                 tableModel.addRow(new Object[]{m.getId(), m.getNama(), m.getJurusan(), m.getAngkatan()});
             }
         } catch (SQLException ex) {
-            ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "Gagal load data: " + ex.getMessage());
         }
     }
 
     private void clearForm() {
-        tfId.setText(""); tfNama.setText(""); tfJurusan.setText(""); tfAngkatan.setText("");
+        tfId.setText("");
+        tfNama.setText("");
+        tfJurusan.setText("");
+        tfAngkatan.setText("");
     }
 
     private void captureComponent(Component c, String path) {
@@ -261,12 +294,8 @@ public class MainForm extends JFrame {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            try {
-                // set look and feel system
-                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-            } catch (Exception ignore) {}
-            MainForm mf = new MainForm();
-            mf.setVisible(true);
+            try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); } catch (Exception ignored) {}
+            new MainForm().setVisible(true);
         });
     }
 }
